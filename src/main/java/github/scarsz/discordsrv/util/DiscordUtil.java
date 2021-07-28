@@ -28,21 +28,34 @@ import github.scarsz.discordsrv.api.events.DiscordPrivateMessageSentEvent;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.Emote;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.GuildChannel;
+import net.dv8tion.jda.api.entities.Icon;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent;
 import net.dv8tion.jda.api.events.role.update.RoleUpdateNameEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.ApiStatus;
 
-import java.awt.Color;
 import java.io.File;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -540,12 +553,6 @@ public class DiscordUtil {
             return;
         }
 
-        // set PAPI placeholders
-        if (PluginUtil.pluginHookIsEnabled("placeholderapi")) {
-            //noinspection UnstableApiUsage
-            gameStatus = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(null, gameStatus);
-        }
-
         getJda().getPresence().setActivity(Activity.playing(gameStatus));
     }
 
@@ -583,23 +590,6 @@ public class DiscordUtil {
     public static boolean memberHasRole(Member member, Set<String> rolesToCheck) {
         Set<String> rolesLowercase = rolesToCheck.stream().map(String::toLowerCase).collect(Collectors.toSet());
         return member.getRoles().stream().anyMatch(role -> rolesLowercase.contains(role.getName().toLowerCase()));
-    }
-
-    public static final Color DISCORD_DEFAULT_COLOR = new Color(153, 170, 181, 1);
-
-    /**
-     * Get the Minecraft-equivalent of the given Role for use with having corresponding colors
-     * @param role The Role to look up
-     * @return A String representing the Role's color in hex
-     */
-    @Deprecated
-    public static String convertRoleToMinecraftColor(Role role) {
-        if (role == null) {
-            DiscordSRV.debug("Attempted to look up color for null role");
-            return "";
-        }
-
-        return MessageUtil.toLegacy(Component.empty().color(TextColor.color(role.getColorRaw())));
     }
 
     /**

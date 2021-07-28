@@ -22,15 +22,13 @@
 
 package github.scarsz.discordsrv.util;
 
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
+import net.md_5.bungee.api.ProxyServer;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,8 +55,8 @@ public class SpELExpressionBuilder {
     }
 
     public SpELExpressionBuilder withPluginVariables() {
-        variables.put("plugins", Arrays.stream(Bukkit.getPluginManager().getPlugins())
-                .collect(Collectors.toMap(Plugin::getName, plugin -> plugin))
+        variables.put("plugins", ProxyServer.getInstance().getPluginManager().getPlugins().stream()
+                .collect(Collectors.toMap(p -> p.getDescription().getName(), plugin -> plugin))
         );
         return this;
     }

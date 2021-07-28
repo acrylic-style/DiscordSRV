@@ -25,8 +25,8 @@ package github.scarsz.discordsrv.commands;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.util.GamePermissionUtil;
 import github.scarsz.discordsrv.util.MessageUtil;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -82,9 +82,9 @@ public class CommandHelp {
             // make sure sender has permission to run the commands before showing them permissions for it
             if (!GamePermissionUtil.hasPermission(sender, commandAnnotation.permission())) continue;
 
-            MessageUtil.sendMessage(sender, ChatColor.GRAY + "- " + commandColor + "/discord " + String.join("/", commandAnnotation.commandNames()));
+            MessageUtil.sendMessage(sender, ChatColor.GRAY + "- " + commandColor + "/bdiscord " + String.join("/", commandAnnotation.commandNames()));
             MessageUtil.sendMessage(sender, "    " + ChatColor.ITALIC + commandAnnotation.helpMessage());
-            if (!commandAnnotation.usageExample().equals("")) MessageUtil.sendMessage(sender, "    " + ChatColor.GRAY + ChatColor.ITALIC + "ex. /discord " + commandAnnotation.usageExample());
+            if (!commandAnnotation.usageExample().equals("")) MessageUtil.sendMessage(sender, "    " + ChatColor.GRAY + ChatColor.ITALIC + "ex. /bdiscord " + commandAnnotation.usageExample());
         }
     }
 
@@ -110,9 +110,9 @@ public class CommandHelp {
             // make sure sender has permission to run the commands before showing them permissions for it
             if (!GamePermissionUtil.hasPermission(sender, commandAnnotation.permission())) continue;
 
-            MessageUtil.sendMessage(sender, ChatColor.GRAY + "- " + commandColor + "/discord " + String.join("/", commandAnnotation.commandNames()));
+            MessageUtil.sendMessage(sender, ChatColor.GRAY + "- " + commandColor + "/bdiscord " + String.join("/", commandAnnotation.commandNames()));
             MessageUtil.sendMessage(sender, "   " + ChatColor.ITALIC + commandAnnotation.helpMessage());
-            if (!commandAnnotation.usageExample().equals("")) MessageUtil.sendMessage(sender, "   " + ChatColor.GRAY + ChatColor.ITALIC + "ex. /discord " + commandAnnotation.usageExample());
+            if (!commandAnnotation.usageExample().equals("")) MessageUtil.sendMessage(sender, "   " + ChatColor.GRAY + ChatColor.ITALIC + "ex. /bdiscord " + commandAnnotation.usageExample());
         }
     }
 

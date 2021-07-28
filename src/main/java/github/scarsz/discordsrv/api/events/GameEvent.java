@@ -23,13 +23,13 @@
 package github.scarsz.discordsrv.api.events;
 
 import lombok.Getter;
-import org.bukkit.entity.Player;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 abstract class GameEvent extends Event {
 
-    @Getter final private Player player;
+    @Getter final private ProxiedPlayer player;
 
-    GameEvent(Player player) {
+    GameEvent(ProxiedPlayer player) {
         this.player = player;
     }
 

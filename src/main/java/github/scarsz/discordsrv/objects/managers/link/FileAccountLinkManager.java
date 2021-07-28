@@ -30,11 +30,11 @@ import github.scarsz.discordsrv.util.DiscordUtil;
 import github.scarsz.discordsrv.util.LangUtil;
 import github.scarsz.discordsrv.util.MessageUtil;
 import github.scarsz.discordsrv.util.PrettyUtil;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -137,9 +137,9 @@ public class FileAccountLinkManager extends AbstractAccountLinkManager {
                 synchronized (linkedAccounts) {
                     uuid = linkedAccounts.get(discordId);
                 }
-                OfflinePlayer offlinePlayer = DiscordSRV.getPlugin().getServer().getOfflinePlayer(uuid);
+                ProxiedPlayer player = DiscordSRV.getPlugin().getProxy().getPlayer(uuid);
                 return LangUtil.Message.ALREADY_LINKED.toString()
-                        .replace("%username%", PrettyUtil.beautifyUsername(offlinePlayer, "<Unknown>", false))
+                        .replace("%username%", PrettyUtil.beautifyUsername(player, "<Unknown>", false))
                         .replace("%uuid%", uuid.toString());
             }
         }
@@ -151,9 +151,9 @@ public class FileAccountLinkManager extends AbstractAccountLinkManager {
             link(discordId, linkingCodes.get(linkCode));
             linkingCodes.remove(linkCode);
 
-            OfflinePlayer player = Bukkit.getOfflinePlayer(getUuid(discordId));
-            if (player.isOnline()) {
-                MessageUtil.sendMessage(Bukkit.getPlayer(getUuid(discordId)), LangUtil.Message.MINECRAFT_ACCOUNT_LINKED.toString()
+            ProxiedPlayer player = ProxyServer.getInstance().getPlayer(getUuid(discordId));
+            if (player.isConnected()) {
+                MessageUtil.sendMessage(player, LangUtil.Message.MINECRAFT_ACCOUNT_LINKED.toString()
                         .replace("%username%", DiscordUtil.getUserById(discordId).getName())
                         .replace("%id%", DiscordUtil.getUserById(discordId).getId())
                 );

@@ -23,7 +23,7 @@
 package github.scarsz.discordsrv.api.events;
 
 import lombok.Getter;
-import org.bukkit.command.CommandSender;
+import net.md_5.bungee.api.CommandSender;
 
 /**
  * <p>Called directly after the configuration was reloaded and the requester was informed.</p>

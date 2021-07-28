@@ -28,19 +28,19 @@ import github.scarsz.discordsrv.util.LangUtil;
 import github.scarsz.discordsrv.util.MessageUtil;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static github.scarsz.discordsrv.commands.CommandLinked.*;
+import static github.scarsz.discordsrv.commands.CommandLinked.notifyDiscord;
+import static github.scarsz.discordsrv.commands.CommandLinked.notifyInterpret;
+import static github.scarsz.discordsrv.commands.CommandLinked.notifyPlayer;
 
 public class CommandUnlink {
 
@@ -49,17 +49,17 @@ public class CommandUnlink {
             permission = "discordsrv.unlink"
     )
     public static void execute(CommandSender sender, String[] args) {
-        Bukkit.getScheduler().runTaskAsynchronously(DiscordSRV.getPlugin(), () -> executeAsync(sender, args));
+        ProxyServer.getInstance().getScheduler().runAsync(DiscordSRV.getPlugin(), () -> executeAsync(sender, args));
     }
 
     private static void executeAsync(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            if (!(sender instanceof Player)) {
+            if (!(sender instanceof ProxiedPlayer)) {
                 MessageUtil.sendMessage(sender, ChatColor.RED + LangUtil.InternalMessage.NO_UNLINK_TARGET_SPECIFIED.toString());
                 return;
             }
 
-            Player player = (Player) sender;
+            ProxiedPlayer player = (ProxiedPlayer) sender;
             String linkedId = DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(player.getUniqueId());
             boolean hasLinkedAccount = linkedId != null;
 
@@ -84,9 +84,8 @@ public class CommandUnlink {
             if (target.length() == 32 || target.length() == 36 && args.length == 1) {
                 // target is UUID
                 notifyInterpret(sender, "UUID");
-                OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(target));
-                notifyPlayer(sender, player);
-                String discordId = DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(player.getUniqueId());
+                notifyPlayer(sender, UUID.fromString(target));
+                String discordId = DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(UUID.fromString(target));
                 notifyDiscord(sender, discordId);
                 if (discordId != null) {
                     DiscordSRV.getPlugin().getAccountLinkManager().unlink(discordId);
@@ -98,7 +97,7 @@ public class CommandUnlink {
                 // target is a Discord ID
                 notifyInterpret(sender, "Discord ID");
                 UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager().getUuid(target);
-                notifyPlayer(sender, uuid != null ? Bukkit.getOfflinePlayer(uuid) : null);
+                notifyPlayer(sender, uuid);
                 notifyDiscord(sender, target);
                 if (uuid != null) {
                     DiscordSRV.getPlugin().getAccountLinkManager().unlink(uuid);
@@ -108,15 +107,14 @@ public class CommandUnlink {
             } else {
                 if (args.length == 1 && target.length() >= 3 && target.length() <= 16) {
                     // target is probably a Minecraft player name
-                    OfflinePlayer player = Arrays.stream(Bukkit.getOfflinePlayers())
-                            .filter(OfflinePlayer::hasPlayedBefore)
+                    ProxiedPlayer player = ProxyServer.getInstance().getPlayers().stream()
                             .filter(p -> p.getName() != null && p.getName().equalsIgnoreCase(target))
                             .findFirst().orElse(null);
 
                     if (player != null) {
                         // found them
                         notifyInterpret(sender, "Minecraft player");
-                        notifyPlayer(sender, player);
+                        notifyPlayer(sender, player.getUniqueId());
                         notifyDiscord(sender, DiscordSRV.getPlugin().getAccountLinkManager().getDiscordId(player.getUniqueId()));
 
                         DiscordSRV.getPlugin().getAccountLinkManager().unlink(player.getUniqueId());
@@ -145,7 +143,7 @@ public class CommandUnlink {
                             notifyDiscord(sender, user.getId());
                             UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager().getUuid(user.getId());
                             if (uuid != null) {
-                                notifyPlayer(sender, Bukkit.getOfflinePlayer(uuid));
+                                notifyPlayer(sender, uuid);
                                 DiscordSRV.getPlugin().getAccountLinkManager().unlink(user.getId());
                                 notifyUnlinked(sender);
                             } else {
@@ -154,7 +152,7 @@ public class CommandUnlink {
                         } else {
                             matches.stream().limit(5).forEach(user -> {
                                 UUID uuid = DiscordSRV.getPlugin().getAccountLinkManager().getUuid(user.getId());
-                                notifyPlayer(sender, uuid != null ? Bukkit.getOfflinePlayer(uuid) : null);
+                                notifyPlayer(sender, uuid);
                                 notifyDiscord(sender, user.getId());
                             });
 

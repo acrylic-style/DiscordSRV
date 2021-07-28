@@ -22,45 +22,13 @@
 
 package github.scarsz.discordsrv.modules.alerts;
 
-import alexh.weak.Dynamic;
-import alexh.weak.Weak;
-import github.scarsz.discordsrv.DiscordSRV;
-import github.scarsz.discordsrv.objects.ExpiringDualHashBidiMap;
-import github.scarsz.discordsrv.objects.Lag;
-import github.scarsz.discordsrv.objects.MessageFormat;
-import github.scarsz.discordsrv.util.*;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.event.*;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerEvent;
-import org.bukkit.event.server.ServerCommandEvent;
-import org.bukkit.plugin.RegisteredListener;
+import net.md_5.bungee.api.plugin.Listener;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.expression.ParseException;
-import org.springframework.expression.spel.SpelEvaluationException;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class AlertListener implements Listener, EventListener {
-
+/*
     private static final Pattern VALID_CLASS_NAME_PATTERN = Pattern.compile("([\\p{L}_$][\\p{L}\\p{N}_$]*\\.)*[\\p{L}_$][\\p{L}\\p{N}_$]*");
     private static final List<String> BLACKLISTED_CLASS_NAMES = Arrays.asList(
             // Causes issues with logins with some plugins
@@ -201,11 +169,12 @@ public class AlertListener implements Listener, EventListener {
         HandlerList.unregisterAll(this);
         registered = false;
     }
-
+    */
     @Override
     public void onEvent(@NotNull GenericEvent event) {
-        runAlertsForEvent(event);
+        //runAlertsForEvent(event);
     }
+    /*
 
     private void runAlertsForEvent(Object event) {
         boolean command = event instanceof PlayerCommandPreprocessEvent || event instanceof ServerCommandEvent;
@@ -294,52 +263,32 @@ public class AlertListener implements Listener, EventListener {
     }
 
     private String getEventName(Object event) {
-        return event instanceof Event ? ((Event) event).getEventName() : event.getClass().getSimpleName();
+        return event.getClass().getSimpleName();
     }
 
     private void process(Object event, Dynamic alert, Set<String> triggers, int alertIndex) {
-        Player player = event instanceof PlayerEvent ? ((PlayerEvent) event).getPlayer() : null;
-        if (player == null) {
-            // some things that do deal with players are not properly marked as a player event
-            // this will check to see if a #getPlayer() method exists on events coming through
-            try {
-                Method getPlayerMethod = event.getClass().getMethod("getPlayer");
-                if (getPlayerMethod.getReturnType().equals(Player.class)) {
-                    player = (Player) getPlayerMethod.invoke(event);
-                }
-            } catch (Exception ignored) {
-                // we tried ¯\_(ツ)_/¯
+        ProxiedPlayer player = null;
+        try {
+            Method getPlayerMethod = event.getClass().getMethod("getPlayer");
+            if (getPlayerMethod.getReturnType().equals(ProxiedPlayer.class)) {
+                player = (ProxiedPlayer) getPlayerMethod.invoke(event);
             }
+        } catch (Exception ignored) {
+            // we tried ¯\_(ツ)_/¯
         }
 
         CommandSender sender = null;
         String command = null;
         List<String> args = new LinkedList<>();
 
-        if (event instanceof PlayerCommandPreprocessEvent) {
-            sender = player;
-            command = ((PlayerCommandPreprocessEvent) event).getMessage().substring(1);
-        } else if (event instanceof ServerCommandEvent) {
-            sender = ((ServerCommandEvent) event).getSender();
-            command = ((ServerCommandEvent) event).getCommand();
-        }
-        if (StringUtils.isNotBlank(command)) {
-            String[] split = command.split(" ", 2);
-            String commandBase = split[0];
-            if (split.length == 2) args.addAll(Arrays.asList(split[1].split(" ")));
-
-            // transform "discordsrv:discord" to just "discord" for example
-            if (commandBase.contains(":")) commandBase = commandBase.substring(commandBase.lastIndexOf(":") + 1);
-
-            command = commandBase + (split.length == 2 ? (" " + split[1]) : "");
-        }
+        StringUtils.isNotBlank(command);
 
         MessageFormat messageFormat = DiscordSRV.getPlugin().getMessageFromConfiguration("Alerts." + alertIndex);
 
         for (String trigger : triggers) {
             String eventName = getEventName(event);
             if (trigger.startsWith("/")) {
-                if (StringUtils.isBlank(command) || !command.toLowerCase().split("\\s+|$", 2)[0].equals(trigger.substring(1))) continue;
+                continue;
             } else {
                 // make sure the called event matches what this alert is supposed to trigger on
                 if (!eventName.equalsIgnoreCase(trigger)) continue;
@@ -435,14 +384,14 @@ public class AlertListener implements Listener, EventListener {
                 CommandSender finalSender = sender;
                 String finalCommand = command;
 
-                Player finalPlayer = player;
+                ProxiedPlayer finalPlayer = player;
                 BiFunction<String, Boolean, String> translator = (content, needsEscape) -> {
                     if (content == null) return null;
 
                     // evaluate any SpEL expressions
                     Map<String, Object> variables = new HashMap<>();
                     variables.put("event", event);
-                    variables.put("server", Bukkit.getServer());
+                    variables.put("server", ProxyServer.getInstance());
                     variables.put("discordsrv", DiscordSRV.getPlugin());
                     variables.put("player", finalPlayer);
                     variables.put("sender", finalSender);
@@ -468,10 +417,8 @@ public class AlertListener implements Listener, EventListener {
                                 return finalPlayer != null ? finalPlayer.getName() : "";
                             case "displayname":
                                 return finalPlayer != null ? MessageUtil.strip(needsEscape ? DiscordUtil.escapeMarkdown(finalPlayer.getDisplayName()) : finalPlayer.getDisplayName()) : "";
-                            case "world":
-                                return finalPlayer != null ? finalPlayer.getWorld().getName() : "";
                             case "embedavatarurl":
-                                return finalPlayer != null ? DiscordSRV.getAvatarUrl(finalPlayer) : DiscordUtil.getJda().getSelfUser().getEffectiveAvatarUrl();
+                                return finalPlayer != null ? null : DiscordUtil.getJda().getSelfUser().getEffectiveAvatarUrl();
                             case "botavatarurl":
                                 return DiscordUtil.getJda().getSelfUser().getEffectiveAvatarUrl();
                             case "botname":
@@ -503,5 +450,5 @@ public class AlertListener implements Listener, EventListener {
             }
         }
     }
-
+*/
 }

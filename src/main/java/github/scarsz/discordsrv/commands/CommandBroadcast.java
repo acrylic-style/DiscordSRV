@@ -25,10 +25,10 @@ package github.scarsz.discordsrv.commands;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.util.*;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
 
 import java.util.List;
 import java.util.Objects;
@@ -76,7 +76,7 @@ public class CommandBroadcast {
             if (DiscordSRV.config().getBoolean("Experiment_MCDiscordReserializer_InBroadcast")) {
                 DiscordUtil.queueMessage(
                         target,
-                        MessageUtil.reserializeToDiscord(MessageUtil.toComponent(MessageUtil.translateLegacy(rawMessage))),
+                        ChatColor.stripColor(rawMessage),
                         true
                 );
             } else {

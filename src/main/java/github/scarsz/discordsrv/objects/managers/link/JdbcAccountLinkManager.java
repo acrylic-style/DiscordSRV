@@ -30,21 +30,29 @@ import github.scarsz.discordsrv.util.DiscordUtil;
 import github.scarsz.discordsrv.util.LangUtil;
 import github.scarsz.discordsrv.util.MessageUtil;
 import github.scarsz.discordsrv.util.SQLUtil;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.event.PlayerDisconnectEvent;
+import net.md_5.bungee.api.event.PostLoginEvent;
+import net.md_5.bungee.event.EventHandler;
+import net.md_5.bungee.event.EventPriority;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerLoginEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.sql.*;
-import java.util.*;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -235,26 +243,28 @@ public class JdbcAccountLinkManager extends AbstractAccountLinkManager {
             }
         }
 
-        Bukkit.getScheduler().runTaskTimerAsynchronously(DiscordSRV.getPlugin(), () -> {
-            long currentTime = System.currentTimeMillis();
-            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-                UUID uuid = onlinePlayer.getUniqueId();
-                if (!cache.containsKey(uuid) || cache.getExpiryTime(uuid) - TimeUnit.SECONDS.toMillis(30) < currentTime) {
-                    putExpiring(uuid, getDiscordIdBypassCache(uuid), currentTime + EXPIRY_TIME_ONLINE);
-                }
-            }
-
-            try (final PreparedStatement statement = connection.prepareStatement(
-                    "select COUNT(*) as accountcount from " + accountsTable + ";")) {
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        count = resultSet.getInt("accountcount");
+        ProxyServer.getInstance().getScheduler().schedule(DiscordSRV.getPlugin(), () -> {
+            ProxyServer.getInstance().getScheduler().runAsync(DiscordSRV.getPlugin(), () -> {
+                long currentTime = System.currentTimeMillis();
+                for (ProxiedPlayer onlinePlayer : ProxyServer.getInstance().getPlayers()) {
+                    UUID uuid = onlinePlayer.getUniqueId();
+                    if (!cache.containsKey(uuid) || cache.getExpiryTime(uuid) - TimeUnit.SECONDS.toMillis(30) < currentTime) {
+                        putExpiring(uuid, getDiscordIdBypassCache(uuid), currentTime + EXPIRY_TIME_ONLINE);
                     }
                 }
-            } catch (SQLException t) {
-                t.printStackTrace();
-            }
-        }, 0L, 200L);
+
+                try (final PreparedStatement statement = connection.prepareStatement(
+                        "select COUNT(*) as accountcount from " + accountsTable + ";")) {
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        if (resultSet.next()) {
+                            count = resultSet.getInt("accountcount");
+                        }
+                    }
+                } catch (SQLException t) {
+                    t.printStackTrace();
+                }
+            });
+        }, 0L, 200L * 50L, TimeUnit.MILLISECONDS);
     }
 
     private void dropExpiredCodes() {
@@ -353,10 +363,8 @@ public class JdbcAccountLinkManager extends AbstractAccountLinkManager {
             if (DiscordSRV.config().getBoolean("MinecraftDiscordAccountLinkedAllowRelinkBySendingANewCode")) {
                 unlink(discordId);
             } else {
-                OfflinePlayer offlinePlayer = DiscordSRV.getPlugin().getServer().getOfflinePlayer(existingUuid);
                 return LangUtil.Message.ALREADY_LINKED.toString()
-                        .replace("%username%", String.valueOf(offlinePlayer.getName()))
-                        .replace("%uuid%", offlinePlayer.getUniqueId().toString());
+                        .replace("%uuid%", existingUuid.toString());
             }
         }
 
@@ -374,16 +382,16 @@ public class JdbcAccountLinkManager extends AbstractAccountLinkManager {
                 DiscordSRV.error(e);
             }
 
-            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-            if (player.isOnline()) {
-                MessageUtil.sendMessage(player.getPlayer(), LangUtil.Message.MINECRAFT_ACCOUNT_LINKED.toString()
+            ProxiedPlayer player = ProxyServer.getInstance().getPlayer(uuid);
+            if (player != null) {
+                MessageUtil.sendMessage(player, LangUtil.Message.MINECRAFT_ACCOUNT_LINKED.toString()
                         .replace("%username%", DiscordUtil.getUserById(discordId).getName())
                         .replace("%id%", DiscordUtil.getUserById(discordId).getId())
                 );
             }
 
             return LangUtil.Message.DISCORD_ACCOUNT_LINKED.toString()
-                    .replace("%name%", player.getName() != null ? player.getName() : "<Unknown>")
+                    .replace("%name%", player != null && player.getName() != null ? player.getName() : "<Unknown>")
                     .replace("%uuid%", uuid.toString());
         }
 
@@ -618,16 +626,16 @@ public class JdbcAccountLinkManager extends AbstractAccountLinkManager {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerLogin(PlayerLoginEvent event) {
-        Bukkit.getScheduler().runTaskAsynchronously(DiscordSRV.getPlugin(), () -> {
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerLogin(PostLoginEvent event) {
+        ProxyServer.getInstance().getScheduler().runAsync(DiscordSRV.getPlugin(), () -> {
             UUID uuid = event.getPlayer().getUniqueId();
             cache.putExpiring(uuid, getDiscordIdBypassCache(uuid), System.currentTimeMillis() + EXPIRY_TIME_ONLINE);
         });
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerQuit(PlayerQuitEvent event) {
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerQuit(PlayerDisconnectEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         if (!cache.containsKey(uuid)) return;
         long expiryTime = cache.getExpiryTime(uuid);

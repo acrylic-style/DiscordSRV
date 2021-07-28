@@ -22,7 +22,7 @@
 
 package github.scarsz.discordsrv.objects.managers;
 
-import org.bukkit.event.Listener;
+import net.md_5.bungee.api.plugin.Listener;
 
 import java.util.Map;
 import java.util.Set;

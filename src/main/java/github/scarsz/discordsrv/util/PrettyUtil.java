@@ -25,9 +25,8 @@ package github.scarsz.discordsrv.util;
 import github.scarsz.discordsrv.DiscordSRV;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -48,39 +47,31 @@ public class PrettyUtil {
                 : user.getName() + (includeId ? " (#" + user.getId() + ")" : "");
     }
 
-    public static String beautifyUsername(OfflinePlayer player) {
+    public static String beautifyUsername(ProxiedPlayer player) {
         return beautifyUsername(player, "<Unknown>", true);
     }
 
-    public static String beautifyUsername(OfflinePlayer player, String noUsernameFormat, boolean includeUuid) {
+    public static String beautifyUsername(ProxiedPlayer player, String noUsernameFormat, boolean includeUuid) {
         if (player == null) return noUsernameFormat;
 
         String name = player.getName();
-        if (name == null && player.isOnline()) {
-            // maybe this will work?
-            Player onlinePlayer = player.getPlayer();
-            if (onlinePlayer != null) {
-                name = onlinePlayer.getName();
-            }
-        }
         return (name != null ? name : noUsernameFormat) + (includeUuid ? " (" + player.getUniqueId() + ")" : "");
     }
 
     /**
-     * Turns a {@link OfflinePlayer} into Nickname/Username (UUID)
+     * Turns a {@link ProxiedPlayer} into Nickname/Username (UUID)
      * @param player the offline player
      * @return the player's nickname (if online) or username (if offline) and the UUID or if player is null "<Unknown>"
      */
-    public static String beautifyNickname(OfflinePlayer player) {
+    public static String beautifyNickname(ProxiedPlayer player) {
         return beautifyNickname(player, "<Unknown>", true);
     }
 
-    public static String beautifyNickname(OfflinePlayer player, String noUsernameFormat, boolean includeUuid) {
+    public static String beautifyNickname(ProxiedPlayer player, String noUsernameFormat, boolean includeUuid) {
         if (player == null || player.getName() == null) return noUsernameFormat;
 
-        if (player.isOnline()) {
-            if (player.getPlayer() == null) return beautifyUsername(player);
-            String displayName = player.getPlayer().getDisplayName();
+        if (player.isConnected()) {
+            String displayName = player.getDisplayName();
             if (StringUtils.isBlank(displayName)) return beautifyUsername(player);
             return MessageUtil.strip(displayName) + (includeUuid ? " (" + player.getUniqueId() + ")" : "");
         } else {

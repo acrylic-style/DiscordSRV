@@ -26,19 +26,16 @@ import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.events.AccountLinkedEvent;
 import github.scarsz.discordsrv.api.events.AccountUnlinkedEvent;
 import github.scarsz.discordsrv.objects.managers.AccountLinkManager;
-import github.scarsz.discordsrv.objects.managers.GroupSynchronizationManager;
 import github.scarsz.discordsrv.util.DiscordUtil;
-import github.scarsz.discordsrv.util.PluginUtil;
 import github.scarsz.discordsrv.util.PrettyUtil;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -46,6 +43,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractAccountLinkManager extends AccountLinkManager {
 
@@ -64,7 +62,7 @@ public abstract class AbstractAccountLinkManager extends AccountLinkManager {
 
     private final Set<String> nagged = new HashSet<>();
     protected void ensureOffThread(boolean single) {
-        if (!Bukkit.isPrimaryThread()) return;
+        //if (!Bukkit.isPrimaryThread()) return;
 
         StackTraceElement[] elements = Thread.currentThread().getStackTrace();
         String apiUser = elements[3].toString();
@@ -91,13 +89,13 @@ public abstract class AbstractAccountLinkManager extends AccountLinkManager {
         DiscordSRV.api.callEvent(new AccountLinkedEvent(DiscordUtil.getUserById(discordId), uuid));
 
         // trigger server commands
-        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+        ProxiedPlayer player = ProxyServer.getInstance().getPlayer(uuid);
         User user = DiscordUtil.getUserById(discordId);
         for (String command : DiscordSRV.config().getStringList("MinecraftDiscordAccountLinkedConsoleCommands")) {
             DiscordSRV.debug("Parsing command /" + command + " for linked commands...");
             command = command
-                    .replace("%minecraftplayername%", PrettyUtil.beautifyUsername(offlinePlayer, "[Unknown Player]", false))
-                    .replace("%minecraftdisplayname%", PrettyUtil.beautifyNickname(offlinePlayer, "[Unknown Player]", false))
+                    .replace("%minecraftplayername%", PrettyUtil.beautifyUsername(player, "[Unknown Player]", false))
+                    .replace("%minecraftdisplayname%", PrettyUtil.beautifyNickname(player, "[Unknown Player]", false))
                     .replace("%minecraftuuid%", uuid.toString())
                     .replace("%discordid%", discordId)
                     .replace("%discordname%", user != null ? user.getName() : "")
@@ -106,66 +104,52 @@ public abstract class AbstractAccountLinkManager extends AccountLinkManager {
                 DiscordSRV.debug("Command was blank, skipping");
                 continue;
             }
-            if (PluginUtil.pluginHookIsEnabled("placeholderapi")) command = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(Bukkit.getPlayer(uuid), command);
+            //if (PluginUtil.pluginHookIsEnabled("placeholderapi")) command = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(ProxyServer.getInstance().getPlayer(uuid), command);
 
             String finalCommand = command;
             DiscordSRV.debug("Final command to be run: /" + finalCommand);
-            Bukkit.getScheduler().scheduleSyncDelayedTask(DiscordSRV.getPlugin(), () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
+            ProxyServer.getInstance().getScheduler().schedule(DiscordSRV.getPlugin(), () -> ProxyServer.getInstance().getPluginManager().dispatchCommand(ProxyServer.getInstance().getConsole(), finalCommand), 1, TimeUnit.MILLISECONDS);
         }
 
-        // group sync using the authoritative side
-        if (DiscordSRV.config().getBoolean("GroupRoleSynchronizationOnLink") && DiscordSRV.getPlugin().getGroupSynchronizationManager().getPermissions() != null) {
-            DiscordSRV.getPlugin().getGroupSynchronizationManager().resync(
-                    offlinePlayer,
-                    GroupSynchronizationManager.SyncDirection.AUTHORITATIVE,
-                    true,
-                    GroupSynchronizationManager.SyncCause.PLAYER_LINK
-            );
-        } else {
-            String roleName = DiscordSRV.config().getString("MinecraftDiscordAccountLinkedRoleNameToAddUserTo");
-            try {
-                Role roleToAdd = DiscordUtil.getJda().getRolesByName(roleName, true).stream().findFirst().orElse(null);
-                if (roleToAdd != null) {
-                    Member member = roleToAdd.getGuild().getMemberById(discordId);
-                    if (member != null) {
-                        DiscordUtil.addRoleToMember(member, roleToAdd);
-                    } else {
-                        DiscordSRV.debug("Couldn't find member for " + offlinePlayer.getName() + " in " + roleToAdd.getGuild());
-                    }
+        String roleName = DiscordSRV.config().getString("MinecraftDiscordAccountLinkedRoleNameToAddUserTo");
+        try {
+            Role roleToAdd = DiscordUtil.getJda().getRolesByName(roleName, true).stream().findFirst().orElse(null);
+            if (roleToAdd != null) {
+                Member member = roleToAdd.getGuild().getMemberById(discordId);
+                if (member != null) {
+                    DiscordUtil.addRoleToMember(member, roleToAdd);
                 } else {
-                    DiscordSRV.debug("Couldn't find \"account linked\" role " + roleName + " to add to " + offlinePlayer.getName() + "'s linked Discord account");
+                    DiscordSRV.debug("Couldn't find member for " + player.getName() + " in " + roleToAdd.getGuild());
                 }
-            } catch (Throwable t) {
-                DiscordSRV.debug("Couldn't add \"account linked\" role \"" + roleName + "\" due to exception: " + ExceptionUtils.getMessage(t));
+            } else {
+                DiscordSRV.debug("Couldn't find \"account linked\" role " + roleName + " to add to " + player.getName() + "'s linked Discord account");
             }
+        } catch (Throwable t) {
+            DiscordSRV.debug("Couldn't add \"account linked\" role \"" + roleName + "\" due to exception: " + ExceptionUtils.getMessage(t));
         }
 
         // set user's discord nickname as their in-game name
         if (DiscordSRV.config().getBoolean("NicknameSynchronizationEnabled")) {
-            DiscordSRV.getPlugin().getNicknameUpdater().setNickname(DiscordUtil.getMemberById(discordId), offlinePlayer);
+            DiscordSRV.getPlugin().getNicknameUpdater().setNickname(DiscordUtil.getMemberById(discordId), player);
         }
     }
 
     protected void beforeUnlink(UUID uuid, String discordId) {
-        if (DiscordSRV.getPlugin().isGroupRoleSynchronizationEnabled()) {
-            DiscordSRV.getPlugin().getGroupSynchronizationManager().removeSynchronizables(Bukkit.getOfflinePlayer(uuid));
-        } else {
-            try {
-                // remove user from linked role
-                Role role = DiscordUtil.getJda().getRolesByName(DiscordSRV.config().getString("MinecraftDiscordAccountLinkedRoleNameToAddUserTo"), true).stream().findFirst().orElse(null);
-                if (role != null) {
-                    Member member = role.getGuild().getMemberById(discordId);
-                    if (member != null) {
-                        role.getGuild().removeRoleFromMember(member, role).queue();
-                    } else {
-                        DiscordSRV.debug("Couldn't remove \"linked\" role from null member: " + uuid);
-                    }
+        try {
+            // remove user from linked role
+            Role role = DiscordUtil.getJda().getRolesByName(DiscordSRV.config().getString("MinecraftDiscordAccountLinkedRoleNameToAddUserTo"), true).stream().findFirst().orElse(null);
+            if (role != null) {
+                Member member = role.getGuild().getMemberById(discordId);
+                if (member != null) {
+                    role.getGuild().removeRoleFromMember(member, role).queue();
                 } else {
-                    DiscordSRV.debug("Couldn't remove user from null \"linked\" role");
+                    DiscordSRV.debug("Couldn't remove \"linked\" role from null member: " + uuid);
                 }
-            } catch (Throwable t) {
-                DiscordSRV.debug("Failed to remove \"linked\" role from [" + uuid + ":" + discordId + "] during unlink: " + ExceptionUtils.getMessage(t));
+            } else {
+                DiscordSRV.debug("Couldn't remove user from null \"linked\" role");
             }
+        } catch (Throwable t) {
+            DiscordSRV.debug("Failed to remove \"linked\" role from [" + uuid + ":" + discordId + "] during unlink: " + ExceptionUtils.getMessage(t));
         }
     }
 
@@ -175,7 +159,7 @@ public abstract class AbstractAccountLinkManager extends AccountLinkManager {
         DiscordSRV.api.callEvent(new AccountUnlinkedEvent(discordId, uuid));
 
         // run unlink console commands
-        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+        ProxiedPlayer offlinePlayer = ProxyServer.getInstance().getPlayer(uuid);
         User user = DiscordUtil.getUserById(discordId);
         for (String command : DiscordSRV.config().getStringList("MinecraftDiscordAccountUnlinkedConsoleCommands")) {
             command = command
@@ -186,10 +170,10 @@ public abstract class AbstractAccountLinkManager extends AccountLinkManager {
                     .replace("%discordname%", user != null ? user.getName() : "")
                     .replace("%discorddisplayname%", PrettyUtil.beautify(user, "", false));
             if (StringUtils.isBlank(command)) continue;
-            if (PluginUtil.pluginHookIsEnabled("placeholderapi")) command = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(Bukkit.getPlayer(uuid), command);
+            //if (PluginUtil.pluginHookIsEnabled("placeholderapi")) command = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(ProxyServer.getInstance().getPlayer(uuid), command);
 
             String finalCommand = command;
-            Bukkit.getScheduler().scheduleSyncDelayedTask(DiscordSRV.getPlugin(), () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand));
+            ProxyServer.getInstance().getScheduler().schedule(DiscordSRV.getPlugin(), () -> ProxyServer.getInstance().getPluginManager().dispatchCommand(ProxyServer.getInstance().getConsole(), finalCommand), 50, TimeUnit.MILLISECONDS);
         }
 
         if (member != null) {
@@ -200,7 +184,7 @@ public abstract class AbstractAccountLinkManager extends AccountLinkManager {
             }
         }
 
-        Player player = Bukkit.getPlayer(uuid);
+        ProxiedPlayer player = ProxyServer.getInstance().getPlayer(uuid);
         if (player != null) {
             DiscordSRV.getPlugin().getRequireLinkModule().noticePlayerUnlink(player);
         }

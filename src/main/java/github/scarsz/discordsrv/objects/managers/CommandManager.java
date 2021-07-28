@@ -23,14 +23,22 @@
 package github.scarsz.discordsrv.objects.managers;
 
 import github.scarsz.discordsrv.DiscordSRV;
-import github.scarsz.discordsrv.commands.*;
+import github.scarsz.discordsrv.commands.Command;
+import github.scarsz.discordsrv.commands.CommandBroadcast;
+import github.scarsz.discordsrv.commands.CommandDebug;
+import github.scarsz.discordsrv.commands.CommandHelp;
+import github.scarsz.discordsrv.commands.CommandLanguage;
+import github.scarsz.discordsrv.commands.CommandLink;
+import github.scarsz.discordsrv.commands.CommandLinked;
+import github.scarsz.discordsrv.commands.CommandReload;
+import github.scarsz.discordsrv.commands.CommandUnlink;
 import github.scarsz.discordsrv.util.GamePermissionUtil;
 import github.scarsz.discordsrv.util.LangUtil;
 import github.scarsz.discordsrv.util.MessageUtil;
 import lombok.Getter;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -52,7 +60,6 @@ public class CommandManager {
                 CommandLink.class,
                 CommandLinked.class,
                 CommandReload.class,
-                CommandResync.class,
                 CommandUnlink.class
         );
 
@@ -64,7 +71,7 @@ public class CommandManager {
                     DiscordSRV.debug("Method " + method.toGenericString().replace("public static void ", "") + " annotated as command but parameters count != 2");
                     continue;
                 }
-                if (method.getParameters()[0].getType() != CommandSender.class && method.getParameters()[0].getType() != Player.class) {
+                if (method.getParameters()[0].getType() != CommandSender.class && method.getParameters()[0].getType() != ProxiedPlayer.class) {
                     DiscordSRV.debug("Method " + method.toGenericString().replace("public static void ", "") + " annotated as command but parameter 1's type != CommandSender || Player");
                     continue;
                 }
@@ -97,7 +104,7 @@ public class CommandManager {
                     return true;
                 }
 
-                if (commandMethod.getParameters()[0].getType() == Player.class && !(sender instanceof Player)) {
+                if (commandMethod.getParameters()[0].getType() == ProxiedPlayer.class && !(sender instanceof ProxiedPlayer)) {
                     MessageUtil.sendMessage(sender, ChatColor.RED + LangUtil.InternalMessage.PLAYER_ONLY_COMMAND.toString());
                     return true;
                 }

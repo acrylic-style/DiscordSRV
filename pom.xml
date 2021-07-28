@@ -376,15 +376,15 @@
             <version>3.0.3</version>
         </dependency>
 
-        <!-- bukkit -->
+        <!-- bungeecord -->
         <dependency>
-            <groupId>com.destroystokyo.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.16.5-R0.1-SNAPSHOT</version>
+            <groupId>io.github.waterfallmc</groupId>
+            <artifactId>waterfall-api</artifactId>
+            <version>1.17-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
-            <!-- system scope stuff below is for convenience when needing to dig through NMS in IDE -->
+            <!-- system scope stuff below is for convenience when needing to dig through BungeeCord internals in IDE -->
 <!--            <scope>system</scope>-->
-<!--            <systemPath>${project.basedir}/craftbukkit.jar</systemPath>-->
+<!--            <systemPath>${project.basedir}/BungeeCord.jar</systemPath>-->
             <exclusions>
                 <exclusion> <!-- We only use lang3 -->
                     <groupId>commons-lang</groupId>
@@ -455,11 +455,17 @@
             <version>30.1.1-jre</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.7</version>
+        </dependency>
+
         <!-- mysql driver -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.49</version> <!-- Matches CraftBukkit's version -->
+            <version>5.1.49</version> <!-- Matches BungeeCord's version -->
             <scope>provided</scope>
         </dependency>
 
@@ -507,112 +513,7 @@
             <version>4.2.1</version>
         </dependency>
 
-        <!-- Kyori Adventure -->
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-api</artifactId>
-            <version>4.8.0</version>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-serializer-legacy</artifactId>
-            <version>4.8.0</version>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-serializer-gson</artifactId>
-            <version>4.8.0</version>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-platform-bukkit</artifactId>
-            <!-- if it breaks blame the lack of releases -->
-            <version>4.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-minimessage</artifactId>
-            <!-- Releases aren't a thing, right? This is a (specific) snapshot build on nexus.scarsz.me -->
-            <version>4.1.0-20210316.192746</version>
-        </dependency>
-
         <!-- plugin hooks -->
-
-        <!-- chat plugin hooks -->
-
-        <!-- chatty -->
-        <dependency>
-            <groupId>ru.mrbrikster</groupId>
-            <artifactId>chatty-api</artifactId>
-            <version>2.18.2</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- fancychat -->
-        <dependency>
-            <groupId>br.com.finalcraft</groupId>
-            <artifactId>fancychat</artifactId>
-            <version>1.0.2</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- herochat -->
-        <dependency>
-            <groupId>com.dthielke.herochat</groupId>
-            <artifactId>Herochat</artifactId>
-            <version>5.6.5</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- legendchat -->
-        <dependency>
-            <groupId>br.com.devpaulo</groupId>
-            <artifactId>legendchat</artifactId>
-            <version>1.1.5</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- lunachat -->
-        <dependency>
-            <groupId>com.github.ucchyocean.lc</groupId>
-            <artifactId>LunaChat</artifactId>
-            <version>3.0.16</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- townychat -->
-        <dependency>
-            <groupId>com.palmergames.bukkit</groupId>
-            <artifactId>TownyChat</artifactId>
-            <version>0.45</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- ultimatechat -->
-        <dependency>
-            <groupId>br.net.fabiozumbi12.UltimateChat</groupId>
-            <artifactId>UltimateChat-Spigot</artifactId>
-            <version>1.9.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- venturechat -->
-        <dependency>
-            <groupId>mineverse.aust1n46</groupId>
-            <artifactId>venturechat</artifactId>
-            <version>2.20.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- ProtocolLib (required by venturechat) -->
-        <dependency>
-            <groupId>com.comphenix.protocol</groupId>
-            <artifactId>ProtocolLib</artifactId>
-            <version>4.5.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- vanish plugin hooks -->
-
-        <!-- supervanish -->
-        <dependency>
-            <groupId>de.myzelyam</groupId>
-            <artifactId>SuperVanish</artifactId>
-            <version>6.2.0</version>
-            <scope>provided</scope>
-        </dependency>
 
         <!-- permission plugin hooks -->
 
@@ -621,47 +522,6 @@
             <groupId>net.luckperms</groupId>
             <artifactId>api</artifactId>
             <version>5.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- world plugin hooks -->
-
-        <!-- multiverse-core -->
-        <dependency>
-            <groupId>com.onarandombox.MultiverseCore</groupId>
-            <artifactId>Multiverse-Core</artifactId>
-            <version>2.4</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- other plugin hooks -->
-
-        <!-- dynmap -->
-        <dependency>
-            <groupId>org.dynmap</groupId>
-            <artifactId>dynmap-api</artifactId>
-            <version>2.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- skript -->
-        <dependency>
-            <groupId>ch.njol</groupId>
-            <artifactId>skript</artifactId>
-            <version>2.5</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- vault -->
-        <dependency>
-            <groupId>net.milkbowl.vault</groupId>
-            <artifactId>VaultAPI</artifactId>
-            <version>1.7</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- mcMMO -->
-        <dependency>
-            <groupId>com.gmail.nossr50</groupId>
-            <artifactId>mcmmo</artifactId>
-            <version>1.5.07</version>
             <scope>provided</scope>
         </dependency>
 
@@ -678,14 +538,6 @@
             <artifactId>annotations</artifactId>
             <version>20.1.0</version>
             <scope>provided</scope>
-        </dependency>
-
-        <!-- bStats -->
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
-            <version>2.2.1</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>

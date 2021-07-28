@@ -22,7 +22,7 @@
 
 package github.scarsz.discordsrv.util;
 
-import org.bukkit.OfflinePlayer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 public class PlaceholderUtil {
 
@@ -32,11 +32,14 @@ public class PlaceholderUtil {
         return replacePlaceholders(input, null);
     }
 
-    public static String replacePlaceholders(String input, OfflinePlayer player) {
+    public static String replacePlaceholders(String input, ProxiedPlayer player) {
+        /*
         if (input == null) return null;
         if (PluginUtil.pluginHookIsEnabled("placeholderapi")) {
             input = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, input);
         }
+        return input;
+        */
         return input;
     }
 
@@ -50,7 +53,7 @@ public class PlaceholderUtil {
     /**
      * Important when the content may contain role mentions
      */
-    public static String replacePlaceholdersToDiscord(String input, OfflinePlayer player) {
+    public static String replacePlaceholdersToDiscord(String input, ProxiedPlayer player) {
         boolean placeholderapi = PluginUtil.pluginHookIsEnabled("placeholderapi");
 
         // PlaceholderAPI has a side effect of replacing chat colors at the end of placeholder conversion

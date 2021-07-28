@@ -25,8 +25,8 @@ package github.scarsz.discordsrv.objects.threads;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.objects.Lag;
 import github.scarsz.discordsrv.util.*;
+import net.md_5.bungee.api.ProxyServer;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -74,14 +74,12 @@ public class ChannelTopicUpdater extends Thread {
         final Map<String, String> mem = MemUtil.get();
 
         input = input.replaceAll("%time%|%date%", notNull(TimeUtil.timeStamp()))
-                     .replace("%playercount%", notNull(Integer.toString(PlayerUtil.getOnlinePlayers(true).size())))
-                     .replace("%playermax%", notNull(Integer.toString(Bukkit.getMaxPlayers())))
+                     .replace("%playercount%", notNull(Integer.toString(PlayerUtil.getOnlinePlayers().size())))
                      .replace("%totalplayers%", notNull(Integer.toString(DiscordSRV.getTotalPlayerCount())))
                      .replace("%uptimemins%", notNull(Long.toString(TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - DiscordSRV.getPlugin().getStartTime()))))
                      .replace("%uptimehours%", notNull(Long.toString(TimeUnit.MILLISECONDS.toHours(System.currentTimeMillis() - DiscordSRV.getPlugin().getStartTime()))))
                      .replace("%uptimedays%", notNull(Long.toString(TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - DiscordSRV.getPlugin().getStartTime()))))
-                     .replace("%motd%", notNull(StringUtils.isNotBlank(Bukkit.getMotd()) ? MessageUtil.strip(Bukkit.getMotd()) : ""))
-                     .replace("%serverversion%", notNull(Bukkit.getBukkitVersion()))
+                     .replace("%serverversion%", notNull(ProxyServer.getInstance().getVersion()))
                      .replace("%freememory%", notNull(mem.get("freeMB")))
                      .replace("%usedmemory%", notNull(mem.get("usedMB")))
                      .replace("%totalmemory%", notNull(mem.get("totalMB")))

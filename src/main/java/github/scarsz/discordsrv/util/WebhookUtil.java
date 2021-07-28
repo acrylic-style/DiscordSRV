@@ -27,9 +27,9 @@ import github.scarsz.discordsrv.DiscordSRV;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -73,13 +73,13 @@ public class WebhookUtil {
         }
     }
 
-    public static void deliverMessage(TextChannel channel, Player player, String message) {
+    public static void deliverMessage(TextChannel channel, ProxiedPlayer player, String message) {
         deliverMessage(channel, player, message, null);
     }
 
-    public static void deliverMessage(TextChannel channel, Player player, String message, MessageEmbed embed) {
-        Bukkit.getScheduler().runTaskAsynchronously(DiscordSRV.getPlugin(), () -> {
-            String avatarUrl = DiscordSRV.getAvatarUrl(player);
+    public static void deliverMessage(TextChannel channel, ProxiedPlayer player, String message, MessageEmbed embed) {
+        ProxyServer.getInstance().getScheduler().runAsync(DiscordSRV.getPlugin(), () -> {
+            String avatarUrl = null;
             String username = DiscordSRV.config().getString("Experiment_WebhookChatMessageUsernameFormat")
                     .replace("%displayname%", MessageUtil.strip(player.getDisplayName()))
                     .replace("%username%", player.getName());
@@ -116,7 +116,7 @@ public class WebhookUtil {
         String webhookUrl = getWebhookUrlToUseForChannel(channel);
         if (webhookUrl == null) return;
 
-        Bukkit.getScheduler().runTaskAsynchronously(DiscordSRV.getPlugin(), () -> {
+        ProxyServer.getInstance().getScheduler().runAsync(DiscordSRV.getPlugin(), () -> {
             try {
                 JSONObject jsonObject = new JSONObject();
                 // workaround for a Discord block for using 'Clyde' in usernames
@@ -167,7 +167,7 @@ public class WebhookUtil {
                 if (status == 204) {
                     DiscordSRV.debug("Received API response for webhook message delivery: " + status);
                 } else {
-                    DiscordSRV.debug("Received unexpected API response for webhook message delivery: " + status + " for request: " + jsonObject.toString() + ", response: " + body);
+                    DiscordSRV.debug("Received unexpected API response for webhook message delivery: " + status + " for request: " + jsonObject + ", response: " + body);
                 }
             } catch (Exception e) {
                 DiscordSRV.error("Failed to deliver webhook message to Discord: " + e.getMessage());

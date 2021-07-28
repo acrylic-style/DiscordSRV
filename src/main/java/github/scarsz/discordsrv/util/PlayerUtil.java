@@ -23,58 +23,27 @@
 package github.scarsz.discordsrv.util;
 
 import github.scarsz.discordsrv.DiscordSRV;
-import github.scarsz.discordsrv.hooks.PluginHook;
-import github.scarsz.discordsrv.hooks.vanish.VanishHook;
-import net.dv8tion.jda.api.entities.User;
-import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.Server;
-import org.bukkit.Sound;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class PlayerUtil {
-
-    public static List<Player> getOnlinePlayers() {
-        return getOnlinePlayers(false);
-    }
-
     /**
      * Method return type-safe version of Bukkit::getOnlinePlayers
-     * @param filterVanishedPlayers whether or not to filter out vanished players
      * @return {@code ArrayList} containing online players
      */
-    public static List<Player> getOnlinePlayers(boolean filterVanishedPlayers) {
-        List<Player> onlinePlayers = new ArrayList<>();
-
-        try {
-            Method onlinePlayerMethod = Server.class.getMethod("getOnlinePlayers");
-            if (onlinePlayerMethod.getReturnType().equals(Collection.class)) {
-                for (Object o : ((Collection<?>) onlinePlayerMethod.invoke(Bukkit.getServer()))) {
-                    onlinePlayers.add((Player) o);
-                }
-            } else {
-                Collections.addAll(onlinePlayers, ((Player[]) onlinePlayerMethod.invoke(Bukkit.getServer())));
-            }
-        } catch (Exception e) {
-            DiscordSRV.error(e);
-        }
-
-        if (!filterVanishedPlayers) {
-            return onlinePlayers;
-        } else {
-            return onlinePlayers.stream()
-                    .filter(player -> !isVanished(player))
-                    .collect(Collectors.toList());
-        }
+    public static List<ProxiedPlayer> getOnlinePlayers() {
+        return new ArrayList<>(ProxyServer.getInstance().getPlayers());
     }
 
+    // BungeeCord doesn't support sounds
+    /*
     private static Sound notificationSound = null;
     static {
         for (Sound sound : Sound.class.getEnumConstants())
@@ -83,6 +52,7 @@ public class PlayerUtil {
         // this'll never occur, but, in the case that it really didn't find a notification sound, go with a UI button click
         if (notificationSound == null) notificationSound = Sound.UI_BUTTON_CLICK;
     }
+    */
 
     /**
      * Notify online players of mentions after a message was broadcasted to them
@@ -90,7 +60,9 @@ public class PlayerUtil {
      * @param predicate predicate to determine whether or not the player got the message this ding was triggered for
      * @param message the message to be searched for players to ding
      */
-    public static void notifyPlayersOfMentions(Predicate<? super Player> predicate, String message) {
+    public static void notifyPlayersOfMentions(Predicate<? super ProxiedPlayer> predicate, String message) {
+        // it can't be used without plugin on bukkit side
+        /*
         if (predicate == null) predicate = Objects::nonNull; // if null predicate given, that means everyone on the server would've gotten the message
                                                              // thus, default to a (hopefully) always true predicate
 
@@ -121,6 +93,7 @@ public class PlayerUtil {
                         splitMessage.contains("@" + player.getName().toLowerCase()) || splitMessage.contains("@" + MessageUtil.strip(player.getDisplayName().toLowerCase()))
                 )
                 .forEach(player -> player.playSound(player.getLocation(), notificationSound, 1, 1));
+        */
     }
 
     /**
@@ -128,19 +101,11 @@ public class PlayerUtil {
      * @param player Player to check
      * @return whether or not the player is vanished
      */
-    public static boolean isVanished(Player player) {
-        for (PluginHook pluginHook : DiscordSRV.getPlugin().getPluginHooks()) {
-            if (pluginHook instanceof VanishHook) {
-                if (((VanishHook) pluginHook).isVanished(player)) {
-                    return true;
-                }
-            }
-        }
-
+    public static boolean isVanished(ProxiedPlayer player) {
         return false;
     }
 
-    public static int getPing(Player player) {
+    public static int getPing(ProxiedPlayer player) {
         try {
             Object entityPlayer = player.getClass().getMethod("getHandle").invoke(player);
             return (int) entityPlayer.getClass().getField("ping").get(entityPlayer);
@@ -153,25 +118,7 @@ public class PlayerUtil {
     private static final List<Character> VANILLA_TARGET_SELECTORS = Arrays.asList('p', 'r', 'a', 'e', 's');
 
     public static String convertTargetSelectors(String message, CommandSender sender) {
-        for (int i = 0; i < message.length(); i++) {
-            if (message.charAt(i) == '@') {
-                int end = getSelectorEnd(message, i);
-                if (end < 0 || end + 1 < message.length() && !canSeparateSelectors(message.charAt(end + 1))) {
-                    continue;
-                }
-                String selector = message.substring(i, end + 1);
-
-                try {
-                    String target = sender == null ? "{TARGET}" : sender.getServer().selectEntities(sender, selector).stream()
-                            .map(Entity::getName)
-                            .collect(Collectors.joining(" "));
-                    message = message.substring(0, i) + target + message.substring(end + 1);
-                    i += target.length() - 1;
-                } catch (Exception ignored) {
-                    // 1.12 and below or invalid selector
-                }
-            }
-        }
+        // BungeeCord can't/doesn't have target selector
         return message;
     }
 

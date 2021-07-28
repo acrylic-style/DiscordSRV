@@ -30,14 +30,11 @@ import github.scarsz.configuralize.Language;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.events.DebugReportedEvent;
 import github.scarsz.discordsrv.hooks.PluginHook;
-import github.scarsz.discordsrv.hooks.SkriptHook;
-import github.scarsz.discordsrv.hooks.VaultHook;
-import github.scarsz.discordsrv.hooks.chat.TownyChatHook;
 import github.scarsz.discordsrv.listeners.DiscordDisconnectListener;
-import github.scarsz.discordsrv.modules.voice.VoiceModule;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.CloseCode;
+import net.md_5.bungee.api.ProxyServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -45,11 +42,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.bukkit.Bukkit;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.*;
-import org.bukkit.plugin.RegisteredListener;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -97,16 +89,12 @@ public class DebugUtil {
                     "console channel: " + DiscordSRV.getPlugin().getConsoleChannel(),
                     "main chat channel: " + DiscordSRV.getPlugin().getMainChatChannel() + " -> " + DiscordSRV.getPlugin().getMainTextChannel(),
                     "discord guild roles: " + (DiscordSRV.getPlugin().getMainGuild() == null ? "invalid main guild" : DiscordSRV.getPlugin().getMainGuild().getRoles().stream().map(Role::toString).collect(Collectors.toList())),
-                    "vault groups: " + Arrays.toString(VaultHook.getGroups()),
                     "PlaceholderAPI expansions: " + getInstalledPlaceholderApiExpansions(),
-                    "/discord command executor: " + (Bukkit.getServer().getPluginCommand("discord") != null ? Bukkit.getServer().getPluginCommand("discord").getPlugin() : ""),
                     "threads:",
                     "    channel topic updater -> alive: " + (DiscordSRV.getPlugin().getChannelTopicUpdater() != null && DiscordSRV.getPlugin().getChannelTopicUpdater().isAlive()),
                     "    console message queue worker -> alive: " + (DiscordSRV.getPlugin().getConsoleMessageQueueWorker() != null && DiscordSRV.getPlugin().getConsoleMessageQueueWorker().isAlive()),
-                    "    server watchdog -> alive: " + (DiscordSRV.getPlugin().getServerWatchdog() != null && DiscordSRV.getPlugin().getServerWatchdog().isAlive()),
                     "    nickname updater -> alive: " + (DiscordSRV.getPlugin().getNicknameUpdater() != null && DiscordSRV.getPlugin().getNicknameUpdater().isAlive()),
-                    "hooked plugins: " + DiscordSRV.getPlugin().getPluginHooks().stream().map(PluginHook::getPlugin).filter(Objects::nonNull).map(Object::toString).collect(Collectors.joining(", ")),
-                    "skripts: " + String.join(", ", SkriptHook.getSkripts())
+                    "hooked plugins: " + DiscordSRV.getPlugin().getPluginHooks().stream().map(PluginHook::getPlugin).filter(Objects::nonNull).map(Object::toString).collect(Collectors.joining(", "))
             })));
             files.add(fileMap("relevant-lines-from-server.log", "lines from the server console containing \"discordsrv\"", getRelevantLinesFromServerLog()));
             files.add(fileMap("config.yml", "raw plugins/DiscordSRV/config.yml", FileUtils.readFileToString(DiscordSRV.getPlugin().getConfigFile(), StandardCharsets.UTF_8)));
@@ -118,7 +106,6 @@ public class DebugUtil {
             files.add(fileMap("alerts.yml", "raw plugins/DiscordSRV/alerts.yml", FileUtils.readFileToString(DiscordSRV.getPlugin().getAlertsFile(), StandardCharsets.UTF_8)));
             files.add(fileMap("server-info.txt", null, getServerInfo()));
             files.add(fileMap("logger-details.txt", null, getLoggerInfo()));
-            files.add(fileMap("registered-listeners.txt", "list of registered listeners for Bukkit events DiscordSRV uses", getRegisteredListeners()));
             files.add(fileMap("permissions.txt", null, getPermissions()));
             files.add(fileMap("threads.txt", "Threads with DiscordSRV in the name or that have trace elements with DiscordSRV's classes", getThreads()));
             files.add(fileMap("system-info.txt", null, getSystemInfo()));
@@ -204,14 +191,12 @@ public class DebugUtil {
     private static String getServerInfo() {
         List<String> output = new LinkedList<>();
 
-        List<String> plugins = Arrays.stream(Bukkit.getPluginManager().getPlugins()).map(Object::toString).sorted().collect(Collectors.toList());
+        List<String> plugins = ProxyServer.getInstance().getPluginManager().getPlugins().stream().map(Object::toString).sorted().collect(Collectors.toList());
 
-        output.add("server players: " + PlayerUtil.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
+        output.add("server players: " + PlayerUtil.getOnlinePlayers().size());
         output.add("server plugins: " + plugins);
         output.add("");
-        output.add("Minecraft version: " + Bukkit.getVersion());
-        output.add("Bukkit API version: " + Bukkit.getBukkitVersion());
-        output.add("Server online mode: " + Bukkit.getOnlineMode());
+        output.add("BungeeCord version: " + ProxyServer.getInstance().getVersion());
 
         return String.join("\n", output);
     }
@@ -306,17 +291,6 @@ public class DebugUtil {
             } catch (Throwable ignored) {}
         }
 
-        if (PluginUtil.pluginHookIsEnabled("TownyChat")) {
-            try {
-                String mainChannelName = TownyChatHook.getMainChannelName();
-                if (mainChannelName != null && !DiscordSRV.getPlugin().getChannels().containsKey(mainChannelName)) {
-                    messages.add(new Message(Message.Type.NO_TOWNY_MAIN_CHANNEL, mainChannelName));
-                }
-            } catch (Throwable ignored) {
-                // didn't work
-            }
-        }
-
         if (!DiscordSRV.config().getBooleanElse("RespectChatPlugins", true)) {
             messages.add(new Message(Message.Type.RESPECT_CHAT_PLUGINS));
         }
@@ -343,80 +317,6 @@ public class DebugUtil {
         return stringBuilder.toString();
     }
 
-    @SuppressWarnings("deprecation")
-    private static String getRegisteredListeners() {
-        List<String> output = new LinkedList<>();
-        List<Class<?>> listenedClasses = new ArrayList<>();
-
-        try {
-            listenedClasses.add(Class.forName("io.papermc.paper.event.player.AsyncChatEvent"));
-            listenedClasses.add(Class.forName("io.papermc.paper.event.player.ChatEvent"));
-        } catch (ClassNotFoundException ignored) {
-            output.add("(Async)ChatEvent not available.");
-        }
-
-        listenedClasses.addAll(Arrays.asList(
-                AsyncPlayerChatEvent.class,
-                PlayerChatEvent.class,
-                PlayerJoinEvent.class,
-                PlayerQuitEvent.class,
-                PlayerDeathEvent.class,
-                AsyncPlayerPreLoginEvent.class,
-                PlayerLoginEvent.class
-        ));
-
-        try {
-            listenedClasses.add(Class.forName("org.bukkit.event.player.PlayerAdvancementDoneEvent"));
-        } catch (ClassNotFoundException ignored) {
-            try {
-                listenedClasses.add(Class.forName("org.bukkit.event.player.PlayerAchievementAwardedEvent"));
-            } catch (ClassNotFoundException ignore) {
-                output.add("PlayerAdvancementDoneEvent and PlayerAchievementAwardedEvent both unavailable??");
-            }
-        }
-
-        for (Class<?> listenedClass : listenedClasses) {
-            try {
-                Class<?> effectiveClass = null;
-                Method getHandlerList;
-                try {
-                    getHandlerList = listenedClass.getDeclaredMethod("getHandlerList");
-                } catch (NoSuchMethodException ignored) {
-                    // Try super class
-                    Class<?> superClass = listenedClass.getSuperclass();
-                    getHandlerList = superClass.getDeclaredMethod("getHandlerList");
-                    effectiveClass = superClass;
-                }
-
-                HandlerList handlerList = (HandlerList) getHandlerList.invoke(null);
-                List<RegisteredListener> registeredListeners = Arrays.stream(handlerList.getRegisteredListeners())
-                        .filter(registeredListener -> !registeredListener.getPlugin().getName().equalsIgnoreCase("DiscordSRV"))
-                        .sorted(Comparator.comparing(RegisteredListener::getPriority)).collect(Collectors.toList());
-
-                if (registeredListeners.isEmpty()) {
-                    output.add("No " + listenedClass + " listeners registered.");
-                } else {
-                    output.add("Registered " + (listenedClass.isAnnotationPresent(Deprecated.class) ? "(DEPRECATED) " : "")
-                            + listenedClass.getSimpleName() + (effectiveClass != null ? " (" + effectiveClass.getSimpleName() + ")" : "")
-                            + " listeners (" + registeredListeners.size() + "): " + registeredListeners.stream()
-                                .map(listener -> listener.getPlugin().getName())
-                                .distinct().sorted().collect(Collectors.joining(", ")));
-
-                    for (RegisteredListener registeredListener : registeredListeners) {
-                        output.add(" - " + registeredListener.getPlugin().getName()
-                                + ": " + registeredListener.getListener().getClass().getName()
-                                + " at " + registeredListener.getPriority());
-                    }
-                }
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                output.add("Error with " + listenedClass.getSimpleName() + ": " + e.getClass().getName() + ": " + e.getMessage());
-            }
-            output.add("");
-        }
-
-        return String.join("\n", output);
-    }
-
     private static String getPermissions() {
         List<String> output = new LinkedList<>();
 
@@ -434,26 +334,6 @@ public class DebugUtil {
             if (DiscordUtil.checkPermission(mainGuild, Permission.NICKNAME_MANAGE)) guildPermissions.add("nickname-manage");
             if (DiscordUtil.checkPermission(mainGuild, Permission.MANAGE_WEBHOOKS)) guildPermissions.add("manage-webhooks");
             output.add("main guild -> " + mainGuild + " [" + String.join(", ", guildPermissions) + "]");
-        }
-
-        VoiceChannel lobbyChannel = VoiceModule.getLobbyChannel();
-        if (lobbyChannel == null) {
-            output.add("voice lobby -> null");
-        } else {
-            List<String> channelPermissions = new ArrayList<>();
-            if (DiscordUtil.checkPermission(lobbyChannel, Permission.VOICE_MOVE_OTHERS)) channelPermissions.add("move-members");
-            output.add("voice lobby -> " + lobbyChannel + " [" + String.join(", ", channelPermissions) + "]");
-
-            Category category = lobbyChannel.getParent();
-            if (category == null) {
-                output.add("voice category -> null");
-            } else {
-                List<String> categoryPermissions = new ArrayList<>();
-                if (DiscordUtil.checkPermission(category, Permission.VOICE_MOVE_OTHERS)) categoryPermissions.add("move-members");
-                if (DiscordUtil.checkPermission(category, Permission.MANAGE_CHANNEL)) categoryPermissions.add("manage-channel");
-                if (DiscordUtil.checkPermission(category, Permission.MANAGE_PERMISSIONS)) categoryPermissions.add("manage-permissions");
-                output.add("voice category -> " + category + " [" + String.join(", ", categoryPermissions) + "]");
-            }
         }
 
         TextChannel consoleChannel = DiscordSRV.getPlugin().getConsoleChannel();

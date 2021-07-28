@@ -24,26 +24,19 @@ package github.scarsz.discordsrv.commands;
 
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.objects.managers.AccountLinkManager;
-import github.scarsz.discordsrv.util.DiscordUtil;
-import github.scarsz.discordsrv.util.GamePermissionUtil;
 import github.scarsz.discordsrv.util.LangUtil;
 import github.scarsz.discordsrv.util.MessageUtil;
-import net.dv8tion.jda.api.entities.User;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 
 public class CommandLink {
 
@@ -58,61 +51,15 @@ public class CommandLink {
             return;
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(DiscordSRV.getPlugin(), () -> executeAsync(sender, args, manager));
+        ProxyServer.getInstance().getScheduler().runAsync(DiscordSRV.getPlugin(), () -> executeAsync(sender, args, manager));
     }
 
-    @SuppressWarnings({"deprecation", "ConstantConditions"})
     private static void executeAsync(CommandSender sender, String[] args, AccountLinkManager manager) {
-        // assume manual link
-        if (args.length >= 2) {
-            if (!GamePermissionUtil.hasPermission(sender, "discordsrv.link.others")) {
-                sender.sendMessage(LangUtil.Message.NO_PERMISSION.toString());
-                return;
-            }
-
-            List<String> arguments = new ArrayList<>(Arrays.asList(args));
-            String minecraft = arguments.remove(0);
-            String discord = String.join(" ", arguments);
-
-            OfflinePlayer offlinePlayer = null;
-
-            try {
-                offlinePlayer = Bukkit.getOfflinePlayer(UUID.fromString(minecraft));
-            } catch (IllegalArgumentException ignored) {}
-
-            if (offlinePlayer == null) offlinePlayer = Bukkit.getOfflinePlayer(minecraft);
-            if (offlinePlayer == null) {
-                MessageUtil.sendMessage(sender, ChatColor.RED + "Minecraft player could not be found");
-                return;
-            }
-
-            User user = null;
-            try {
-                user = DiscordUtil.getJda().getUserById(discord);
-            } catch (IllegalArgumentException ignored) {}
-
-            if (user == null) {
-                try {
-                    user = DiscordUtil.getJda().getUserByTag(discord);
-                } catch (IllegalArgumentException ignored) {}
-            }
-
-            if (user == null) {
-                MessageUtil.sendMessage(sender, ChatColor.RED + "Discord user could not be found");
-                return;
-            }
-
-            DiscordSRV.getPlugin().getAccountLinkManager().link(user.getId(), offlinePlayer.getUniqueId());
-            MessageUtil.sendMessage(sender, ChatColor.GREEN + "Linked together " + ChatColor.GOLD + offlinePlayer.getName()
-                    + ChatColor.GREEN + " and " + ChatColor.GOLD + user.getAsTag());
+        if (!(sender instanceof ProxiedPlayer)) {
+            sender.sendMessage(TextComponent.fromLegacyText(ChatColor.RED + LangUtil.InternalMessage.PLAYER_ONLY_COMMAND.toString()));
             return;
         }
-
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + LangUtil.InternalMessage.PLAYER_ONLY_COMMAND.toString());
-            return;
-        }
-        Player player = (Player) sender;
+        ProxiedPlayer player = (ProxiedPlayer) sender;
 
         // prevent people from generating multiple link codes then claiming them all at once to get multiple rewards
         new ArrayList<>(manager.getLinkingCodes().entrySet()).stream()
@@ -124,21 +71,15 @@ public class CommandLink {
         } else {
             String code = manager.generateCode(player.getUniqueId());
 
-            Component component = LegacyComponentSerializer.builder().character('&').extractUrls().build().deserialize(
-                    LangUtil.Message.CODE_GENERATED.toString()
-                            .replace("%code%", code)
-                            .replace("%botname%", DiscordSRV.getPlugin().getMainGuild().getSelfMember().getEffectiveName())
-            );
-
+            TextComponent text = new TextComponent(TextComponent.fromLegacyText(LangUtil.Message.CODE_GENERATED.toString()
+                    .replace("%code%", code)
+                    .replace("%botname%", DiscordSRV.getPlugin().getMainGuild().getSelfMember().getEffectiveName())));
             String clickToCopyCode = LangUtil.Message.CLICK_TO_COPY_CODE.toString();
             if (StringUtils.isNotBlank(clickToCopyCode)) {
-                component = component.clickEvent(ClickEvent.copyToClipboard(code))
-                        .hoverEvent(HoverEvent.showText(
-                                LegacyComponentSerializer.legacy('&').deserialize(clickToCopyCode)
-                        ));
+                text.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, code));
+                text.setHoverEvent(new HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT, new Text(clickToCopyCode)));
             }
-
-            MessageUtil.sendMessage(sender, component);
+            sender.sendMessage(text);
         }
     }
 

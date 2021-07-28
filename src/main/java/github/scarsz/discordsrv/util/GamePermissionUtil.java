@@ -22,13 +22,12 @@
 
 package github.scarsz.discordsrv.util;
 
-import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.permissions.Permissible;
+import net.md_5.bungee.api.CommandSender;
 
 public class GamePermissionUtil {
 
-    public static boolean hasPermission(Permissible sender, String permission) {
-        return sender instanceof ConsoleCommandSender || sender.hasPermission(permission);
+    public static boolean hasPermission(CommandSender sender, String permission) {
+        return sender.getClass().getCanonicalName().equals("net.md_5.bungee.command.ConsoleCommandSender") || sender.hasPermission(permission);
     }
 
 }

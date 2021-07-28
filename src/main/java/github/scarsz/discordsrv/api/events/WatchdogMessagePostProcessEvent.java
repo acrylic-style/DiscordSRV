@@ -24,7 +24,7 @@ package github.scarsz.discordsrv.api.events;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.event.Cancellable;
+import net.md_5.bungee.api.plugin.Cancellable;
 
 /**
  * <p>Called after DiscordSRV has processed a watchdog message but before being sent to Discord.

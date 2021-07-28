@@ -27,16 +27,13 @@ import github.scarsz.configuralize.Provider;
 import github.scarsz.configuralize.Source;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.util.MessageUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
@@ -83,17 +80,16 @@ public class CommandLanguage {
         }
 
         if (Arrays.stream(args).noneMatch(s -> s.equalsIgnoreCase("-confirm"))) {
-            TextComponent message = Component.text("This will reset your DiscordSRV configuration files to be in ", NamedTextColor.DARK_AQUA)
-                    .append(Component.text(targetLanguageName, NamedTextColor.WHITE))
-                    .append(Component.text(". Your old config files will be renamed to have ", NamedTextColor.DARK_AQUA))
-                    .append(Component.text(currentLanguageName + ".", NamedTextColor.WHITE))
-                    .append(Component.text(" on the beginning of the file name. "))
-                    .append(Component.text("[Confirm" + (sender instanceof Player ? "?" : " by running the command again, adding \" -confirm\" to the end") + "]")
-                            .color(NamedTextColor.GREEN)
-                            .clickEvent(ClickEvent.runCommand("/discord language " + targetLanguage.getCode() + " -confirm"))
-                            .hoverEvent(HoverEvent.showText(Component.text("Click to confirm the config change.", NamedTextColor.GREEN)))
-                    );
-            MessageUtil.sendMessage(sender, message);
+            TextComponent message = new TextComponent(ChatColor.DARK_AQUA + "This will reset your DiscordSRV configuration files to be in ");
+            message.addExtra(ChatColor.WHITE + targetLanguageName);
+            message.addExtra(ChatColor.DARK_AQUA + ". Your old config files will be renamed to have ");
+            message.addExtra(ChatColor.WHITE + currentLanguageName + ".");
+            message.addExtra(" on the beginning of the file name. ");
+            TextComponent extra = new TextComponent(ChatColor.GREEN + "[Confirm" + (sender instanceof ProxiedPlayer ? "?" : " by running the command again, adding \" -confirm\" to the end") + "]");
+            extra.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND, "/bdiscord language " + targetLanguage.getCode() + " -confirm"));
+            extra.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_TEXT, new Text(ChatColor.GREEN + "Click to confirm the config change.")));
+            message.addExtra(extra);
+            sender.sendMessage(message);
         } else {
             DiscordSRV.config().setLanguage(targetLanguage);
 

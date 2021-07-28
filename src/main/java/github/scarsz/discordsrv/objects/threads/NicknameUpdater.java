@@ -32,8 +32,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.ErrorResponse;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -68,7 +67,7 @@ public class NicknameUpdater extends Thread {
                 }
 
                 Guild guild = DiscordSRV.getPlugin().getMainGuild();
-                for (Player onlinePlayer : PlayerUtil.getOnlinePlayers()) {
+                for (ProxiedPlayer onlinePlayer : PlayerUtil.getOnlinePlayers()) {
                     // skip vanished players
                     if (PlayerUtil.isVanished(onlinePlayer)) continue;
 
@@ -113,27 +112,26 @@ public class NicknameUpdater extends Thread {
         }
     }
 
-    public void setNickname(Member member, OfflinePlayer offlinePlayer) {
+    public void setNickname(Member member, ProxiedPlayer proxiedPlayer) {
         if (member == null) return; // prevent NPE when called on join
+        if (proxiedPlayer == null) return;
 
         String nickname;
-        if (offlinePlayer.isOnline()) {
-            Player player = offlinePlayer.getPlayer();
-
+        if (proxiedPlayer.isConnected()) {
             nickname = DiscordSRV.config().getString("NicknameSynchronizationFormat")
-                    .replace("%displayname%", player.getDisplayName() != null ? player.getDisplayName() : player.getName())
-                    .replace("%username%", player.getName())
+                    .replace("%displayname%", proxiedPlayer.getDisplayName() != null ? proxiedPlayer.getDisplayName() : proxiedPlayer.getName())
+                    .replace("%username%", proxiedPlayer.getName())
                     .replace("%discord_name%", member.getUser().getName())
                     .replace("%discord_discriminator%", member.getUser().getDiscriminator());
 
-            nickname = PlaceholderUtil.replacePlaceholders(nickname, player);
+            nickname = PlaceholderUtil.replacePlaceholders(nickname, proxiedPlayer);
         } else {
-            nickname = offlinePlayer.getName();
+            nickname = proxiedPlayer.getName();
         }
 
         nickname = MessageUtil.strip(nickname);
         if (nickname.length() > 32) {
-            DiscordSRV.debug("The new nickname for " + offlinePlayer.getName() + " (" + nickname + ") is too long, reducing it to 32 characters.");
+            DiscordSRV.debug("The new nickname for " + proxiedPlayer.getName() + " (" + nickname + ") is too long, reducing it to 32 characters.");
             nickname = nickname.substring(0, 32);
         }
         DiscordUtil.setNickname(member, nickname);

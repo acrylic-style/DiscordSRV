@@ -27,8 +27,8 @@ import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.objects.MessageFormat;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
+import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 
 import java.awt.Color;
 import java.util.ArrayList;

@@ -21,8 +21,8 @@ softdepend: [
 ]
 
 commands:
-  discord:
-    aliases: [discordsrv]
+  bdiscord:
+    aliases: [bdiscordsrv]
     description: DiscordSRV commands
     usage: |
            /discord - Show the invite link of the Discord server
@@ -33,7 +33,7 @@ commands:
            /discord broadcast - Broadcast a message to Discord
            /discord debug - Send debug information to Gist
            /discord reload - Reload the plugin
-    permission: discordsrv.discord
+    permission: discordsrv.command.discord
 
 permissions:
   discordsrv.player:
