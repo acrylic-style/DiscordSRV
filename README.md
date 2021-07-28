@@ -1,13 +1,8 @@
 ![DiscordSRV Logo](https://lol.scarsz.me/AiKvTS/Logo-filled-stroke.png)
 
-[![Discord](https://discord.com/api/guilds/135634590575493120/widget.png)](https://discordsrv.com/discord)
-[![Latest release](https://img.shields.io/github/release/DiscordSRV/DiscordSRV.svg)](https://github.com/DiscordSRV/DiscordSRV/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/DiscordSRV/DiscordSRV/total.svg)](https://github.com/DiscordSRV/DiscordSRV/releases/latest)
-![Code size in bytes](https://img.shields.io/github/languages/code-size/badges/shields.svg)
-[![GitHub contributors](https://img.shields.io/github/contributors/DiscordSRV/DiscordSRV.svg)](https://github.com/DiscordSRV/DiscordSRV/graphs/contributors)
 [![License](https://img.shields.io/github/license/DiscordSRV/DiscordSRV.svg)](https://github.com/DiscordSRV/DiscordSRV/blob/master/LICENSE)
 
-A Minecraft to Discord and back link plugin
+A Minecraft (BungeeCord) to Discord and back link plugin
 
 ## Thanks to:
 <table>
